@@ -12,38 +12,7 @@ import { ScreenshotResult } from "./services/visionService"
 import ScreenshotPreviewModal from './components/ScreenshotPreviewModal';
 import { aiAnalysisService } from './services/aiService';
 
-export interface Screenshot {
-  id: string;
-  name: string;
-  url: string;
-  timestamp: number;
-}
 
-export interface DrawingElement {
-  id: string;
-  type: 'shape' | 'text' | 'arrow' | 'frame';
-  content: string;
-  position: { x: number; y: number };
-  properties: Record<string, unknown>;
-}
-
-export interface UserJourneyStep {
-  id: string;
-  name: string;
-  description: string;
-  elements: DrawingElement[];
-  events: AnalyticsEvent[];
-  connections: Connection[];
-}
-
-export interface Connection {
-  id: string;
-  fromElementId: string;
-  toElementId: string;
-  type: 'navigation' | 'action' | 'data-flow';
-  label?: string;
-  carriedProperties: string[];
-}
 
 export interface EventProperty {
   name: string;
@@ -70,7 +39,6 @@ export interface AnalyticsEvent {
 export interface UserFlow {
   id: string;
   name: string;
-  steps: UserJourneyStep[];
   drawingSnapshot: StoreSnapshot<TLRecord> | null;
   events: AnalyticsEvent[];
   aiAnalysis?: AIAnalysis;
@@ -159,7 +127,6 @@ function AppContent() {
       const newFlow: UserFlow = {
         id: 'flow-' + Date.now(),
         name: 'Screenshot Journey Analysis',
-        steps: [],
         drawingSnapshot: null,
         events: []
       };
@@ -236,210 +203,6 @@ function AppContent() {
     setScreenshotPreview(null);
   };
 
-  const analyzeWithAI = async () => {
-    if (!userFlow || !userFlow.drawingSnapshot) return;
-    
-    setIsAnalyzing(true);
-    setActiveTab('ai-analysis');
-    
-    try {
-      // This would call actual AI APIs (OpenAI, Gemini, Claude)
-      const analysis = await analyzeUserJourney();
-      
-      setUserFlow(prev => prev ? { 
-        ...prev, 
-        aiAnalysis: analysis 
-      } : null);
-    } catch (error) {
-      console.error('AI Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const analyzeUserJourney = async (): Promise<AIAnalysis> => {
-    // Simulate AI analysis - replace with actual API calls
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    return {
-      events: generateMockEvents(),
-      globalProperties: generateGlobalProperties(),
-      carriedProperties: {},
-      recommendations: generateRecommendations(),
-      dataTypes: {
-        'entryFee': 'number',
-        'contestType': 'string',
-        'userId': 'string',
-        'roundId': 'string',
-        'teamId': 'string'
-      },
-      trackingSpec: generateTrackingSpec(),
-      confidence: 0.87
-    };
-  };
-
-  const generateMockEvents = (): AnalyticsEvent[] => [
-    {
-      id: 'event_1',
-      name: 'contestJoined',
-      elementId: 'joinButton',
-      properties: [
-        {
-          name: 'entryFee',
-          type: 'number',
-          source: 'on-screen',
-          required: true,
-          example: 50,
-          confidence: 0.95,
-          description: 'Amount paid to join the contest'
-        },
-        {
-          name: 'contestType',
-          type: 'string',
-          source: 'on-screen',
-          required: true,
-          example: 'cricketMatch',
-          confidence: 0.92,
-          description: 'Type of contest being joined'
-        },
-        {
-          name: 'roundId',
-          type: 'string',
-          source: 'carried-forward',
-          required: true,
-          example: 'round123',
-          confidence: 0.88,
-          description: 'ID of the round from previous screen'
-        }
-      ],
-      triggers: ['Join Contest Button Click'],
-      sources: ['Contest Selection Screen'],
-      confidence: 0.91,
-      category: 'user_action'
-    },
-    {
-      id: 'event_2',
-      name: 'teamCreated',
-      elementId: 'createTeamButton',
-      properties: [
-        {
-          name: 'teamName',
-          type: 'string',
-          source: 'on-screen',
-          required: true,
-          example: 'My Dream Team',
-          confidence: 0.94,
-          description: 'Name given to the created team'
-        },
-        {
-          name: 'sportType',
-          type: 'string',
-          source: 'carried-forward',
-          required: true,
-          example: 'cricket',
-          confidence: 0.89,
-          description: 'Sport type carried from contest selection'
-        },
-        {
-          name: 'referrerScreen',
-          type: 'string',
-          source: 'global',
-          required: true,
-          example: 'contestJoinFlow',
-          confidence: 0.96,
-          description: 'Screen that triggered team creation'
-        }
-      ],
-      triggers: ['Create Team Button Click', 'Contest Join Flow'],
-      sources: ['Team Creation Screen', 'Contest Selection Screen'],
-      confidence: 0.89,
-      category: 'user_action'
-    }
-  ];
-
-  const generateGlobalProperties = (): EventProperty[] => [
-    {
-      name: 'userId',
-      type: 'string',
-      source: 'global',
-      required: true,
-      example: 'user12345',
-      confidence: 1.0,
-      description: 'Unique identifier for the user'
-    },
-    {
-      name: 'sessionId',
-      type: 'string',
-      source: 'global',
-      required: true,
-      example: 'sessionAbc123',
-      confidence: 1.0,
-      description: 'Current user session identifier'
-    },
-    {
-      name: 'platform',
-      type: 'string',
-      source: 'global',
-      required: true,
-      example: 'mobileApp',
-      confidence: 1.0,
-      description: 'Platform where the event occurred'
-    },
-    {
-      name: 'timestamp',
-      type: 'number',
-      source: 'global',
-      required: true,
-      example: 1672531200000,
-      confidence: 1.0,
-      description: 'Unix timestamp when event occurred'
-    }
-  ];
-
-  const generateRecommendations = (): string[] => [
-    'Use consistent camelCase naming for all events (contestJoined, teamCreated)',
-    'Include referrerScreen property for better user journey tracking',
-    'Add timing properties (screenViewDuration, actionCompletionTime)',
-    'Ensure monetary values like entryFee are stored as numbers for aggregation',
-    'Add validation for required properties before sending events',
-    'Consider adding errorCode property for failed actions',
-    'Include contestId for better cross-event correlation',
-    'Add userTier property for user segmentation analytics'
-  ];
-
-  const generateTrackingSpec = (): TrackingSpec[] => [
-    {
-      eventName: 'contestJoined',
-      description: 'User successfully joins a contest',
-      triggers: ['Join Contest Button Click'],
-      properties: [
-        {
-          name: 'entryFee',
-          type: 'number',
-          source: 'on-screen',
-          required: true,
-          example: 50,
-          confidence: 0.95
-        },
-        {
-          name: 'contestType',
-          type: 'string',
-          source: 'on-screen',
-          required: true,
-          example: 'cricketMatch',
-          confidence: 0.92
-        }
-      ],
-      examples: {
-        entryFee: 50,
-        contestType: 'cricketMatch',
-        roundId: 'round123'
-      },
-      mandatory: ['entryFee', 'contestType', 'roundId', 'userId'],
-      optional: ['teamId', 'referrerScreen']
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
       {/* Header */}
@@ -465,15 +228,6 @@ function AppContent() {
                 <span>Capture & Analyze</span>
               </button>
             )}
-            
-            <button
-              onClick={analyzeWithAI}
-              disabled={isAnalyzing || !userFlow}
-              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Brain className="h-4 w-4" />
-              <span>{isAnalyzing ? 'Analyzing...' : 'AI Analysis'}</span>
-            </button>
           </div>
         </div>
       </header>

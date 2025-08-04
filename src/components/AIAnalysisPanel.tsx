@@ -627,30 +627,28 @@ analytics.track('${event.name}', ${JSON.stringify(properties, null, 2)});`;
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">User Journey Flow</h3>
           <div className="space-y-4">
-            {userFlow.steps.map((step, index) => (
-              <div key={step.id} className="flex items-center space-x-4">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                  {index + 1}
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                1
+              </div>
+              <div className="flex-1 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900 dark:text-white">{userFlow.name}</h4>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{userFlow.events.length} events</span>
                 </div>
-                <div className="flex-1 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 dark:text-white">{step.name}</h4>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{step.elements.length} elements</span>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Analysis of user interactions and event tracking
+                </div>
+                <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                  <div>
+                    <span className="font-medium">Events:</span> {userFlow.events.length}
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {step.description}
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
-                    <div>
-                      <span className="font-medium">Events:</span> {step.events.length}
-                    </div>
-                    <div>
-                      <span className="font-medium">Connections:</span> {step.connections.length}
-                    </div>
+                  <div>
+                    <span className="font-medium">AI Confidence:</span> {userFlow.aiAnalysis ? Math.round(userFlow.aiAnalysis.confidence * 100) + '%' : 'N/A'}
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}

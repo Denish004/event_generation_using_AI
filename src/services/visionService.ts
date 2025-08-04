@@ -1,19 +1,7 @@
 // Demo Screenshot Service - Uses static demo images instead of actual screenshot capturing
 
 export interface ScreenshotOptions {
-  element?: HTMLElement | null
-  selector?: string
-  fullPage?: boolean
-  width?: number
-  height?: number
-  scale?: number
-  quality?: number
   format?: 'png' | 'jpeg' | 'webp'
-  backgroundColor?: string
-  allowTaint?: boolean
-  useCORS?: boolean
-  scrollX?: number
-  scrollY?: number
 }
 
 export interface ScreenshotResult {
@@ -59,87 +47,6 @@ export class ScreenshotService {
   }
 
   /**
-   * Capture screenshot of a specific element (returns demo image)
-   */
-  static async captureElement(
-    _element: HTMLElement, 
-    options: Partial<ScreenshotOptions> = {}
-  ): Promise<ScreenshotResult> {
-    console.log('Using demo screenshot instead of capturing element')
-    return this.getDemoScreenshot(options)
-  }
-
-  /**
-   * Capture screenshot by CSS selector (returns demo image)
-   */
-  static async captureBySelector(
-    selector: string, 
-    options: Partial<ScreenshotOptions> = {}
-  ): Promise<ScreenshotResult> {
-    console.log(`Using demo screenshot instead of capturing selector: ${selector}`)
-    return this.getDemoScreenshot(options)
-  }
-
-  /**
-   * Capture full page screenshot (returns demo image)
-   */
-  static async captureFullPage(options: Partial<ScreenshotOptions> = {}): Promise<ScreenshotResult> {
-    console.log('Using demo screenshot instead of capturing full page')
-    return this.getDemoScreenshot(options)
-  }
-
-  /**
-   * Capture TLDraw canvas specifically (returns demo image)
-   */
-  static async captureTLDrawCanvas(options: Partial<ScreenshotOptions> = {}): Promise<ScreenshotResult> {
-    console.log('Using demo screenshot instead of capturing TLDraw canvas')
-    return this.getDemoScreenshot(options)
-  }
-
-  /**
-   * Capture custom area by coordinates (returns demo image)
-   */
-  static async captureArea(
-    x: number, 
-    y: number, 
-    width: number, 
-    height: number,
-    options: Partial<ScreenshotOptions> = {}
-  ): Promise<ScreenshotResult> {
-    console.log(`Using demo screenshot instead of capturing area: ${x},${y} ${width}x${height}`)
-    return this.getDemoScreenshot(options)
-  }
-
-  /**
-   * Download screenshot as file
-   */
-  static downloadScreenshot(result: ScreenshotResult, filename?: string): void {
-    const defaultFilename = `demo-screenshot-${result.timestamp}.${result.format}`
-    const finalFilename = filename || defaultFilename
-
-    const url = URL.createObjectURL(result.blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = finalFilename
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
-  /**
-   * Create object URL for preview
-   */
-  static createPreviewUrl(result: ScreenshotResult): string {
-    return URL.createObjectURL(result.blob)
-  }
-
-  /**
-   * Clean up preview URL
-   */
-  static revokePreviewUrl(url: string): void {
-    URL.revokeObjectURL(url)
-  }
-
-  /**
    * Convert blob to data URL
    */
   private static async blobToDataUrl(blob: Blob): Promise<string> {
@@ -149,33 +56,5 @@ export class ScreenshotService {
       reader.onerror = reject
       reader.readAsDataURL(blob)
     })
-  }
-
-  /**
-   * Check if screenshot service is available (always true for demo)
-   */
-  static async isAvailable(): Promise<boolean> {
-    return true
-  }
-
-  /**
-   * Get screenshot info without capturing
-   */
-  static getScreenshotInfo(): {
-    viewport: { width: number; height: number }
-    scroll: { x: number; y: number }
-    devicePixelRatio: number
-  } {
-    return {
-      viewport: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      },
-      scroll: {
-        x: window.scrollX,
-        y: window.scrollY
-      },
-      devicePixelRatio: window.devicePixelRatio
-    }
   }
 }

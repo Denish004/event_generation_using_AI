@@ -166,9 +166,6 @@ function DrawingEditor() {
             delete actions['copy-as-svg']
             delete actions['copy-as-png']
             return actions
-        },
-        tools(editor, tools) {
-            return tools
         }
     }
 
