@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, Download } from 'lucide-react';
 import { ScreenshotResult } from '../services/visionService';
 interface ScreenshotPreviewModalProps {
   screenshot: ScreenshotResult;
@@ -46,9 +46,10 @@ const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
           {/* Download button - top right over the screenshot */}
           <button
             onClick={onDownload}
-            className="absolute top-6 right-6 z-10 px-4 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors"
+            className="absolute top-6 right-6 z-10 flex items-center space-x-2 px-4 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-100 transition-colors shadow-lg"
           >
-            Download
+            <Download className="h-4 w-4" />
+            <span>Download</span>
           </button>
 
           {/* Screenshot centered */}

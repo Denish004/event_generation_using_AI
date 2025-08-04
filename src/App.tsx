@@ -105,6 +105,11 @@ function AppContent() {
   const [screenshotPreview, setScreenshotPreview] = useState<null | ScreenshotResult>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // Handler to update user flow when events are edited
+  const handleUpdateUserFlow = useCallback((updatedFlow: UserFlow) => {
+    setUserFlow(updatedFlow);
+  }, []);
+
   const captureJourneyScreenshot = useCallback(async () => {
     try {
       console.log('NewApp: Dispatching captureCanvas event...');
@@ -192,12 +197,37 @@ function AppContent() {
 
   const handleDownloadScreenshot = () => {
     if (screenshotPreview) {
-      // Since we're now using TLDraw's native export, just show a message
-      const infoMsg = document.createElement('div')
-      infoMsg.textContent = 'Use the Export Canvas button in the drawing editor to download the actual canvas!'
-      infoMsg.className = 'fixed top-16 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg'
-      document.body.appendChild(infoMsg)
-      setTimeout(() => document.body.removeChild(infoMsg), 4000)
+      try {
+        // Create a download link for the screenshot
+        const url = URL.createObjectURL(screenshotPreview.blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `journey-screenshot-${Date.now()}.png`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the URL
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.textContent = 'Screenshot downloaded successfully!';
+        successMsg.className = 'fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+        document.body.appendChild(successMsg);
+        setTimeout(() => document.body.removeChild(successMsg), 3000);
+      } catch (error) {
+        console.error('Download failed:', error);
+        
+        // Show error message
+        const errorMsg = document.createElement('div');
+        errorMsg.textContent = 'Download failed. Please try again.';
+        errorMsg.className = 'fixed top-16 right-4 z-50 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg';
+        document.body.appendChild(errorMsg);
+        setTimeout(() => document.body.removeChild(errorMsg), 3000);
+      }
     }
   };
 
@@ -484,6 +514,7 @@ function AppContent() {
             <AIAnalysisPanel 
               userFlow={userFlow}
               isAnalyzing={isAnalyzing}
+              onUpdateUserFlow={handleUpdateUserFlow}
             />
           </div>
         )}

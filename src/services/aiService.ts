@@ -1,9 +1,7 @@
 import { ScreenshotResult } from './visionService';
-import { configService, EnvironmentConfig } from './configService';
-import { AnalyticsEvent, EventProperty, TrackingSpec } from '../NewApp';
+import { AnalyticsEvent, EventProperty, TrackingSpec } from '../App';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIConfig } from '../context/AIConfigContext';
-import { ragService } from './ragService';
 
 export interface JourneyAnalysisResult {
   events: AnalyticsEvent[];
@@ -58,16 +56,10 @@ interface AIScreenResponse {
 }
 
 export class AIAnalysisService {
-  private envConfig: EnvironmentConfig | null = null;
   private aiConfig: AIConfig | null = null;
 
   constructor(aiConfig?: AIConfig) {
     this.aiConfig = aiConfig || null;
-    this.loadConfig();
-  }
-
-  private async loadConfig() {
-    this.envConfig = await configService.loadConfig();
   }
 
   public setAIConfig(config: AIConfig) {
@@ -81,21 +73,21 @@ export class AIAnalysisService {
     if (this.aiConfig?.selectedProvider === 'openai') {
       return {
         provider: 'openai' as const,
-        apiKey: this.aiConfig.apiKeys.openai,
+        apiKey: this.aiConfig.apiKeys?.openai || '',
         model: this.aiConfig.selectedModel || 'gpt-4o'
       };
     } else if (this.aiConfig?.selectedProvider === 'gemini') {
       return {
         provider: 'gemini' as const,
-        apiKey: this.aiConfig.apiKeys.gemini,
+        apiKey: this.aiConfig.apiKeys?.gemini || '',
         model: this.aiConfig.selectedModel || 'gemini-1.5-flash'
       };
     }
     
-    // Fallback to environment config
+    // Default fallback
     return {
       provider: 'openai' as const,
-      apiKey: this.envConfig?.openai || '',
+      apiKey: '',
       model: 'gpt-4o'
     };
   }
@@ -105,14 +97,9 @@ export class AIAnalysisService {
    */
   async analyzeScreenshots(screenshots: ScreenshotResult[], customPrompt?: string): Promise<JourneyAnalysisResult> {
     try {
-      console.log(`🧠 Analyzing ${screenshots.length} screenshots with RAG enhancement...`);
+      console.log(`🧠 Analyzing ${screenshots.length} screenshots...`);
       if (customPrompt) {
         console.log('Custom user prompt:', customPrompt);
-      }
-      
-      // Ensure environment config is loaded for fallback
-      if (!this.envConfig) {
-        await this.loadConfig();
       }
 
       const apiConfig = this.getApiConfig();
@@ -156,22 +143,10 @@ export class AIAnalysisService {
         analysisResult = this.generateMockAnalysis(screenshots);
       }
 
-      // 🚀 ENHANCE WITH RAG: Post-process results with RAG improvements
-      console.log('🔍 Enhancing results with RAG context...');
-      const enhancedResult = await ragService.enhanceAnalysisResults(analysisResult, screenshots);
+      // Using direct results
+      console.log('✅ Analysis completed');
       
-      // Add quality assessment
-      const qualityAssessment = ragService.assessAnalysisQuality(enhancedResult);
-      console.log('📊 Analysis Quality Score:', qualityAssessment.score);
-      console.log('💡 Quality Feedback:', qualityAssessment.feedback);
-      
-      // Add quality insights to recommendations
-      enhancedResult.recommendations = [
-        ...enhancedResult.recommendations,
-        ...qualityAssessment.improvements.map(imp => `Quality Improvement: ${imp}`)
-      ];
-
-      return enhancedResult;
+      return analysisResult;
       
     } catch (error) {
       console.error('AI Analysis failed:', error);
@@ -183,21 +158,20 @@ export class AIAnalysisService {
    * Analyze screenshots using OpenAI Vision API
    */
   private async analyzeWithOpenAI(screenshots: ScreenshotData[], customPrompt?: string, model?: string, apiKey?: string): Promise<JourneyAnalysisResult> {
-    // 🚀 ENHANCE WITH RAG: Get enhanced prompt with RAG context
+    // Using basic prompt
     const basePrompt = this.buildAnalysisPrompt();
-    const enhancedPrompt = await ragService.generateEnhancedPrompt(basePrompt, screenshots, 'events');
     
     const selectedModel = model || 'gpt-4o';
-    const openaiKey = apiKey || this.envConfig?.openai || '';
+    const openaiKey = apiKey || '';
     
-    console.log('🧠 Using RAG-enhanced OpenAI analysis');
+    console.log('🧠 Using standard OpenAI analysis');
     console.log('Using OpenAI model:', selectedModel);
     console.log('API Key (first 10 chars):', openaiKey.substring(0, 10) + '...');
 
     const messages = [
       {
         role: 'system',
-        content: enhancedPrompt
+        content: basePrompt
       },
       {
         role: 'user',
@@ -210,7 +184,7 @@ ANALYSIS REQUIREMENTS:
 
 1. SCREEN-BY-SCREEN EVENT DETECTION:
    - Identify ALL interactive elements on each screen
-   - Detect events like: bannerClicked, tabSwitched, seeAllClicked, dateScrolled
+   - Detect events like: bannerClicked, tabSwitched, seeAllClicked, dateScrolled, filterTabClicked
    - Look for navigation elements, form inputs, buttons, cards, lists
 
 2. PROPERTY SOURCE CLASSIFICATION:
@@ -291,14 +265,13 @@ ${customPrompt ? `\n**ADDITIONAL USER REQUIREMENTS:**\n${customPrompt}\n` : ''}`
    * Analyze screenshots using Google Gemini API
    */
   private async analyzeWithGemini(screenshots: ScreenshotData[], customPrompt?: string, model?: string, apiKey?: string): Promise<JourneyAnalysisResult> {
-    // 🚀 ENHANCE WITH RAG: Get enhanced prompt with RAG context
+    // Using basic prompt
     const basePrompt = this.buildAnalysisPrompt();
-    const enhancedPrompt = await ragService.generateEnhancedPrompt(basePrompt, screenshots, 'events');
     
     const selectedModel = model || 'gemini-1.5-flash';
-    const geminiKey = apiKey || this.envConfig?.gemini || '';
+    const geminiKey = apiKey || '';
     
-    console.log('🧠 Using RAG-enhanced Gemini analysis');
+    console.log('🧠 Using standard Gemini analysis');
     console.log('Using Gemini model:', selectedModel);
     console.log('API Key (first 10 chars):', geminiKey.substring(0, 10) + '...');
 
@@ -318,7 +291,7 @@ ${customPrompt ? `\n**ADDITIONAL USER REQUIREMENTS:**\n${customPrompt}\n` : ''}`
         }
       }));
 
-      const textPrompt = `${enhancedPrompt}
+      const textPrompt = `${basePrompt}
 
 
 
@@ -386,7 +359,7 @@ CORE RESPONSIBILITIES:
 1. SCREEN-LEVEL EVENT DETECTION:
    For each screen, identify ALL interactive elements and their corresponding events:
    - UI interactions (button clicks, scrolls, selections, swipes)
-   - Visual element interactions (banners, cards, navigation tabs)
+   - Visual element interactions (Filter, banners, cards, navigation tabs)
    - Screen-specific actions (date scrolling, filtering, "see all" actions)
    - Form interactions (input fields, dropdowns, toggles)
 
@@ -1398,16 +1371,11 @@ FOCUS AREAS:
    */
   async testConnection(provider: 'openai' | 'gemini', config?: AIConfig): Promise<boolean> {
     try {
-      // Ensure environment config is loaded for fallback
-      if (!this.envConfig) {
-        await this.loadConfig();
-      }
-
       const testConfig = config || this.aiConfig;
 
       switch (provider) {
         case 'openai': {
-          const apiKey = testConfig?.apiKeys?.openai || this.envConfig?.openai;
+          const apiKey = testConfig?.apiKeys?.openai || '';
           if (!apiKey) {
             throw new Error('OpenAI API key not configured');
           }
@@ -1433,7 +1401,7 @@ FOCUS AREAS:
         }
 
         case 'gemini': {
-          const apiKey = testConfig?.apiKeys?.gemini || this.envConfig?.gemini;
+          const apiKey = testConfig?.apiKeys?.gemini || '';
           if (!apiKey) {
             throw new Error('Gemini API key not configured');
           }
@@ -1452,77 +1420,6 @@ FOCUS AREAS:
       console.error(`${provider} connection test failed:`, error);
       return false;
     }
-  }
-
-  /**
-   * 🚀 NEW: Process user feedback to improve future analysis
-   */
-  async processFeedback(
-    analysisId: string,
-    originalAnalysis: JourneyAnalysisResult | { events: AnalyticsEvent[]; [key: string]: unknown },
-    correctedEvents: AnalyticsEvent[],
-    userComments: string,
-    confidence: number
-  ): Promise<void> {
-    try {
-      console.log('🎯 Processing user feedback for self-improvement...');
-      
-      // Calculate improvements from user corrections
-      const improvements = this.calculateImprovements(originalAnalysis.events, correctedEvents);
-      
-      // Create feedback object
-      const feedback = {
-        analysisId,
-        correctedEvents,
-        userComments,
-        confidence,
-        timestamp: new Date(),
-        improvements
-      };
-      
-      // Send to RAG service for learning
-      await ragService.learnFromFeedback(feedback);
-      
-      console.log('✅ Successfully processed user feedback for future improvements');
-    } catch (error) {
-      console.error('❌ Failed to process user feedback:', error);
-    }
-  }
-
-  /**
-   * Calculate improvements between original and corrected analysis
-   */
-  private calculateImprovements(
-    originalEvents: AnalyticsEvent[], 
-    correctedEvents: AnalyticsEvent[]
-  ): {
-    propertyCorrections: { [eventId: string]: EventProperty[] };
-    eventNameChanges: { [oldName: string]: string };
-    categoryCorrections: { [eventId: string]: string };
-  } {
-    const improvements = {
-      propertyCorrections: {} as { [eventId: string]: EventProperty[] },
-      eventNameChanges: {} as { [oldName: string]: string },
-      categoryCorrections: {} as { [eventId: string]: string }
-    };
-
-    // Track event name changes
-    originalEvents.forEach(originalEvent => {
-      const correctedEvent = correctedEvents.find(ce => ce.id === originalEvent.id);
-      if (correctedEvent && correctedEvent.name !== originalEvent.name) {
-        improvements.eventNameChanges[originalEvent.name] = correctedEvent.name;
-      }
-      
-      if (correctedEvent && correctedEvent.category !== originalEvent.category) {
-        improvements.categoryCorrections[originalEvent.id] = correctedEvent.category;
-      }
-      
-      if (correctedEvent && correctedEvent.properties.length !== originalEvent.properties.length) {
-        improvements.propertyCorrections[originalEvent.id] = correctedEvent.properties;
-      }
-    });
-
-    return improvements;
   }
 }
 

@@ -1,9 +1,8 @@
 import { useAppContext } from "../hooks/useAppContext"
 import useWindowDimensions from "../hooks/useWindowDimensions"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Tldraw, TLUiComponents, useEditor } from "tldraw"
+import { useCallback, useEffect, useRef } from "react"
+import { Tldraw, useEditor, TLUiOverrides } from "tldraw"
 import 'tldraw/tldraw.css'
-import { Camera } from "lucide-react"
 import { ScreenshotResult } from "../services/visionService"
 
 function CaptureHandler() {
@@ -155,75 +154,23 @@ function CaptureHandler() {
     return null;
 }
 
-function ExportCanvasButton() {
-    const editor = useEditor()
-    const [isExporting, setIsExporting] = useState(false)
-
-    const handleExportCanvas = useCallback(async () => {
-        setIsExporting(true)
-        try {
-            const shapeIds = editor.getCurrentPageShapeIds()
-            if (shapeIds.size === 0) {
-                alert('No shapes on the canvas to export')
-                return
-            }
-
-            // Use TLDraw's native export functionality
-            const { blob } = await editor.toImage([...shapeIds], { 
-                format: 'png', 
-                background: true,
-                padding: 16,
-                scale: 2
-            })
-
-            // Download the exported image
-            const link = document.createElement('a')
-            link.href = URL.createObjectURL(blob)
-            link.download = `tldraw-canvas-${Date.now()}.png`
-            link.click()
-            URL.revokeObjectURL(link.href)
-
-            // Show success message
-            const successMsg = document.createElement('div')
-            successMsg.textContent = 'Canvas exported successfully!'
-            successMsg.className = 'fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg'
-            document.body.appendChild(successMsg)
-            setTimeout(() => document.body.removeChild(successMsg), 3000)
-
-        } catch (error) {
-            console.error('Failed to export canvas:', error)
-            
-            // Show error message
-            const errorMsg = document.createElement('div')
-            errorMsg.textContent = 'Failed to export canvas!'
-            errorMsg.className = 'fixed top-16 right-4 z-50 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg'
-            document.body.appendChild(errorMsg)
-            setTimeout(() => document.body.removeChild(errorMsg), 3000)
-        } finally {
-            setIsExporting(false)
-        }
-    }, [editor])
-
-    return (
-        <button
-            onClick={handleExportCanvas}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg shadow-lg transition-colors"
-            title="Export Canvas as Image"
-            style={{ pointerEvents: 'all' }}
-        >
-            <Camera className="w-4 h-4" />
-            {isExporting ? 'Exporting...' : 'Export Canvas'}
-        </button>
-    )
-}
-
-const components: TLUiComponents = {
-    SharePanel: ExportCanvasButton,
-}
-
 function DrawingEditor() {
     const { isMobile } = useWindowDimensions()
+
+    // Override UI to remove export functionality
+    const uiOverrides: TLUiOverrides = {
+        actions(editor, actions) {
+            // Remove export actions
+            delete actions['export-as-svg']
+            delete actions['export-as-png']
+            delete actions['copy-as-svg']
+            delete actions['copy-as-png']
+            return actions
+        },
+        tools(editor, tools) {
+            return tools
+        }
+    }
 
     return (
         <div className="w-full h-full relative">
@@ -231,7 +178,7 @@ function DrawingEditor() {
                 inferDarkMode
                 forceMobile={isMobile}
                 defaultName="Editor"
-                components={components}
+                overrides={uiOverrides}
             >
                 <ReachEditor />
                 <CaptureHandler />
